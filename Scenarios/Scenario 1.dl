@@ -1,0 +1,16 @@
+# Facts
+driving
+obstacle
+short_distance
+oncoming_traffic
+
+# Rules
+n_legal: driving => [O]~cross_line
+n_safe: obstacle, short_distance => [O]cross_line
+n_critical: oncoming_traffic => [O]~cross_line, [O]brake_max
+
+# In a critical situation, do not cross the line and brake maximally.
+
+# Superiority
+n_safe > n_legal
+n_critical > n_safe
