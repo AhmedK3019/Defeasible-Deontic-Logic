@@ -19,7 +19,7 @@ engine_files = [
 
 rule_files = [ 
     # "Examples/ambiguity.dl" 
-    "Scenarios/test1.dl"
+    "Scenarios/Scenario 1.dl"
     ]
 
 for file in engine_files:

@@ -181,23 +181,35 @@ class DDLParser(DLParser):
         antecedent = antecedent.strip()
         consequent = consequent.strip()
         antecedent_literals = [self.transform_literal(lit.strip()) for lit in antecedent.split(self.sep) if lit.strip()]
-        consequent_literals = [lit.strip() for lit in consequent.split(self.sep) if lit.strip()]
-        consequent_literal = self.transform_literal(consequent_literals[0])
-        if consequent_literal.startswith('obl('):
-            rule_type = 'prescriptiveRule'
-            if len(consequent_literals) > 1:
-                for i in range(len(consequent_literals) - 1):
-                    elem1 = self.transform_literal(consequent_literals[i][3:])
-                    elem2 = self.transform_literal(consequent_literals[i + 1][3:])
-                    self.compensations.append(f'compensate({name},{elem1},{elem2},{i+1}).')
-        elif consequent_literal.startswith('per('):
-            rule_type = 'permissiveRule'
+        if '&' in consequent:
+            # '&' means parallel conclusions (same-state obligations/permissions).
+            consequent_literals = [lit.strip() for lit in consequent.split('&') if lit.strip()]
+            transformed = [self.transform_literal(lit) for lit in consequent_literals]
+            for consequent_literal in transformed:
+                if consequent_literal.startswith('obl('):
+                    self.rules.append(f'prescriptiveRule({name},{consequent_literal[4:-1]}).')
+                elif consequent_literal.startswith('per('):
+                    self.rules.append(f'permissiveRule({name},{consequent_literal[4:-1]}).')
+                else:
+                    self.rules.append(f'constitutiveRule({name},{consequent_literal}).')
         else:
-            rule_type = 'constitutiveRule'
-        if rule_type == 'constitutiveRule':
-            self.rules.append(f'constitutiveRule({name},{consequent_literal}).')
-        else:
-            self.rules.append(f'{rule_type}({name},{consequent_literal[4:-1]}).')
+            consequent_literals = [lit.strip() for lit in consequent.split(self.sep) if lit.strip()]
+            consequent_literal = self.transform_literal(consequent_literals[0])
+            if consequent_literal.startswith('obl('):
+                rule_type = 'prescriptiveRule'
+                if len(consequent_literals) > 1:
+                    for i in range(len(consequent_literals) - 1):
+                        elem1 = self.transform_literal(consequent_literals[i][3:])
+                        elem2 = self.transform_literal(consequent_literals[i + 1][3:])
+                        self.compensations.append(f'compensate({name},{elem1},{elem2},{i+1}).')
+            elif consequent_literal.startswith('per('):
+                rule_type = 'permissiveRule'
+            else:
+                rule_type = 'constitutiveRule'
+            if rule_type == 'constitutiveRule':
+                self.rules.append(f'constitutiveRule({name},{consequent_literal}).')
+            else:
+                self.rules.append(f'{rule_type}({name},{consequent_literal[4:-1]}).')
         if antecedent_literals:
             if len(antecedent_literals) == 1:
                 self.rules.append(f'body({name},{antecedent_literals[0]}).')
