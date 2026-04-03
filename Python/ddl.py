@@ -49,9 +49,10 @@ for model in ctl.solve(yield_=True):
     print(f"FINAL DEONTIC OUTCOME (Model {modelNo})")
     print(f"{'='*50}\n")
     
-    obligations_from_rules = {}
+    obligations_from_rules = []
     defeated_rules = set()
-    permissions_from_rules = {}
+    permissions_from_rules = []
+    plain_permissions = set()
     defeated_permissions = set()
     weak_violations = []
     compensations = []
@@ -64,13 +65,15 @@ for model in ctl.solve(yield_=True):
         
         if name == "obligation" and arity == 3:
             rule = str(args[0]); lit = str(args[1])
-            obligations_from_rules[rule] = lit
+            obligations_from_rules.append((rule, lit))
         elif name == "obligationDefeated" and arity == 3:
             rule = str(args[0])
             defeated_rules.add(rule)
         elif name == "permission" and arity == 3:
             rule = str(args[0]); lit = str(args[1])
-            permissions_from_rules[rule] = lit
+            permissions_from_rules.append((rule, lit))
+        elif name == "permission" and arity == 1:
+            plain_permissions.add(str(args[0]))
         elif name == "permissionDefeated" and arity == 3:
             rule = str(args[0])
             defeated_permissions.add(rule)
@@ -86,15 +89,17 @@ for model in ctl.solve(yield_=True):
     
     # Final obligations with rule names
     final_obligations = []
-    for rule, lit in obligations_from_rules.items():
+    for rule, lit in obligations_from_rules:
         if rule not in defeated_rules:
             final_obligations.append((rule, lit))
     
-    # Final permissions similarly
+    # Final rule-based permissions
     final_permissions = []
-    for rule, lit in permissions_from_rules.items():
+    for rule, lit in permissions_from_rules:
         if rule not in defeated_permissions:
             final_permissions.append((rule, lit))
+    rule_permission_literals = {lit for _, lit in final_permissions}
+    final_plain_permissions = [lit for lit in sorted(plain_permissions) if lit not in rule_permission_literals]
     
     print("FACTS:")
     for f in facts:
@@ -115,6 +120,12 @@ for model in ctl.solve(yield_=True):
                 print(f"   • You MAY NOT {inner}  (rule: {rule})")
             else:
                 print(f"   • You MAY {lit}  (rule: {rule})")
+        for lit in final_plain_permissions:
+            if lit.startswith("non("):
+                inner = lit[4:-1]
+                print(f"   • You MAY NOT {inner}")
+            else:
+                print(f"   • You MAY {lit}")
     else:
         print("   • None")
     
