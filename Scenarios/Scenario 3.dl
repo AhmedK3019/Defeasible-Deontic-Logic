@@ -1,0 +1,16 @@
+# Facts
+pedestrian
+# solid_line
+oncoming_traffic
+
+# Strict Rules
+r_phys: pedestrian -> buffer_required
+
+# Defeasible Rules (norms)
+r_legal: solid_line => [O]~cross_line
+r_safe: buffer_required => [O]provide_buffer & [O]cross_line
+r_critical: oncoming_traffic, pedestrian => [O]~cross_line & [O]~provide_buffer & [O]trail_pedestrian
+
+# Superiority
+r_safe > r_legal
+r_critical > r_safe
