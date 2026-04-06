@@ -1,0 +1,19 @@
+# Facts
+car
+red_light
+ambulance_vehicle
+
+# Defeater
+# traffic
+
+# Strict rules
+r1: ambulance_vehicle -> emergency_vehicle
+
+# Defeasible norms
+r_legal: red_light => [O]~enter_intersection
+r_safe: emergency_vehicle => [O]clear_path & [O]enter_intersection
+r_critical: traffic => [O]~enter_intersection
+
+# Priority
+r_safe > r_legal
+r_critical > r_safe
