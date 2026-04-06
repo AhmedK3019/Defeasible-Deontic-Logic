@@ -163,9 +163,9 @@ class DDLParser(DLParser):
         lines = text.split('\n')
         for line in lines:
             line = line.strip()
-            if not line or line.startswith('#') or '->' in line:
+            if not line or line.startswith('#'):
                 continue
-            if '=>' in line:
+            if '=>' in line or '->' in line:
                 self.parse_rule(line)
             elif '>' in line or '<' in line:
                 self.parse_superiority(line)
@@ -177,10 +177,24 @@ class DDLParser(DLParser):
     def parse_rule(self, line):
         name, rule = line.split(':')
         name = name.strip()
-        antecedent, consequent = rule.split('=>')
+        if '->' in rule:
+            antecedent, consequent = rule.split('->')
+            is_strict = True
+        else:
+            antecedent, consequent = rule.split('=>')
+            is_strict = False
         antecedent = antecedent.strip()
         consequent = consequent.strip()
         antecedent_literals = [self.transform_literal(lit.strip()) for lit in antecedent.split(self.sep) if lit.strip()]
+        if is_strict:
+            consequent_literal = self.transform_literal(consequent)
+            self.rules.append(f'strictRule({name},{consequent_literal}).')
+            if antecedent_literals:
+                if len(antecedent_literals) == 1:
+                    self.rules.append(f'body({name},{antecedent_literals[0]}).')
+                else:
+                    self.rules.append(f'body({name},({";".join(antecedent_literals)})).')
+            return
         if '&' in consequent:
             # '&' means parallel conclusions (same-state obligations/permissions).
             consequent_literals = [lit.strip() for lit in consequent.split('&') if lit.strip()]

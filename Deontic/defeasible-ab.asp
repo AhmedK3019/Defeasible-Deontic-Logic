@@ -7,6 +7,9 @@ file("Deontic/defeasible-ab.asp", "Deontic defeasible ambiguity blocking", "2026
 % every fact X holds defeasibly
 defeasible(X) :-  fact(X).
 
+% strict conclusions are usable as plain literals in deontic antecedents.
+defeasible(X) :- strictRule(R,X), applicable(R,X).
+
 % X holds defeasibly, it there is not fact X1 opposing X, and
 % there is an applicable constitutiveRule R for X that is not 
 % overruled for X.

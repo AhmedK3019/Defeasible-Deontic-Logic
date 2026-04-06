@@ -5,6 +5,7 @@ version("deontic language", "2026-01-09").
 #include "../language.asp".
 
 % a rule is either  a constitutive, prescriptive, or permissive rule
+rule(R,X) :- strictRule(R,X).
 rule(R,X) :- constitutiveRule(R,X).
 rule(R,X) :- prescriptiveRule(R,X).
 rule(R,X) :- permissiveRule(R,X).
