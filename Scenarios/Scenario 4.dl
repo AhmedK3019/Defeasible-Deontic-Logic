@@ -1,0 +1,17 @@
+# Facts
+hazard
+one_way_street
+rear_traffic
+
+# Defeasible Rules (Norms)
+r_legal: one_way_street => [O]~reverse
+
+# The safety rule directly mandates both the goal and the physical maneuver
+r_safe: hazard => [O]escape_hazard & [O]reverse
+
+# The defeater reacts to the dynamic collision risk, revokes the escape, and enforces parking
+r_critical: rear_traffic => [O]~reverse & [O]~escape_hazard & [O]park_vehicle
+
+# Superiority
+r_safe > r_legal
+r_critical > r_safe
