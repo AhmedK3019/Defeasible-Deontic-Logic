@@ -165,6 +165,9 @@ class DDLParser(DLParser):
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
+            if line.startswith('compensate('):
+                self.parse_compensation(line)
+                continue
             if '=>' in line or '->' in line:
                 self.parse_rule(line)
             elif '>' in line or '<' in line:
@@ -173,6 +176,11 @@ class DDLParser(DLParser):
                 self.parse_facts(line)
             else:
                 self.parse_fact(line)
+
+    def parse_compensation(self, line):
+        # Accept both "compensate(...)." and "compensate(...)".
+        value = line[:-1] if line.endswith('.') else line
+        self.compensations.append(f'{value}.')
 
     def parse_rule(self, line):
         name, rule = line.split(':')
