@@ -18,7 +18,7 @@ def main():
     blueprint_library = world.get_blueprint_library()
     actor_list = []
 
-    # Initialize the Logic Engine ONCE here
+
     root_folder = r"C:\Users\Ahmed Khalid\Desktop\Defeasible-Deontic-Logic"
     logic_engine = DDLEngine(root_folder)
 
