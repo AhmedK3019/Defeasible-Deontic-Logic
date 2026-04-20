@@ -23,7 +23,7 @@ def main():
     logic_engine = DDLEngine(root_folder)
 
     try:
-        # 1. Spawn EXACTLY one Mercedes (Ego Vehicle) at Spawn 59
+        # 1. Spawn one Mercedes (Ego Vehicle) at Spawn 59
         merc_bp = blueprint_library.find('vehicle.mercedes.coupe_2020')
         merc_bp.set_attribute('color', '200,100,100') # Red
         spawn_points = world.get_map().get_spawn_points()
@@ -80,9 +80,9 @@ def main():
         actor_list.append(rear_car)
         print("✅ Rear Traffic Spawned exactly 20 meters behind Ego Vehicle")
 
-        # --- THE BLINDFOLDED AI (For Ego Vehicle) ---
+        # --- (For Ego Vehicle) ---
         tm = client.get_trafficmanager(8000)
-        tm.vehicle_percentage_speed_difference(ego_vehicle, 60.0) # Drive 40% of limit to let Audi catch up
+        tm.vehicle_percentage_speed_difference(ego_vehicle, 60.0) # Drive 60% of limit to let Audi catch up
         tm.ignore_walkers_percentage(ego_vehicle, 100)
         ego_vehicle.set_autopilot(True)
         print("🤖 Mercedes AI is creeping towards the roadblock...")
@@ -138,7 +138,6 @@ def main():
 
                 facts_header = "# Facts\n" + "\n".join(live_facts) + "\n\n"
                 
-                # STITCHING YOUR EXACT ROUTING LOGIC
                 rules_block = (
                     "# Strict Rules\n"
                     "r_phys: hazard -> escape_required\n\n"
@@ -175,7 +174,7 @@ def main():
                     # Turn on Reverse Lights
                     ego_vehicle.set_light_state(carla.VehicleLightState.Reverse) 
                     
-                    # Apply REVERSE flag to VehicleControl (FIX: Gear=-1 makes it move instantly)
+                    # Apply REVERSE flag to VehicleControl
                     ego_vehicle.apply_control(carla.VehicleControl(throttle=0.4, steer=0.0, brake=0.0, reverse=True, manual_gear_shift=True, gear=-1))
                     time.sleep(5.0) 
                     
@@ -195,7 +194,7 @@ def main():
     finally:
         print("\nCleaning up the world...")
         for actor in actor_list:
-            # FIX: Added 'actor is not None' to prevent AttributeErrors on cleanup
+        
             if actor is not None and actor.is_alive:
                 actor.destroy()
         print("✅ Cleanup complete.")

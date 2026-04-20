@@ -23,7 +23,7 @@ def main():
     logic_engine = DDLEngine(root_folder)
 
     try:
-        # 1. Spawn EXACTLY one Mercedes (Ego Vehicle)
+        # 1. Spawn one Mercedes (Ego Vehicle)
         merc_bp = blueprint_library.find('vehicle.mercedes.coupe_2020')
         merc_bp.set_attribute('color', '200,100,100') # Red
         spawn_points = world.get_map().get_spawn_points()
@@ -45,7 +45,7 @@ def main():
         cam_location = carla.Location(x=cam_x, y=cam_y, z=cam_z)
         spectator.set_transform(carla.Transform(cam_location, car_transform.rotation))
 
-        # 2. Spawn EXACTLY one Pedestrian (15 meters ahead, shifted to right edge)
+        # 2. Spawn one Pedestrian (15 meters ahead, shifted to right edge)
         walker_bps = blueprint_library.filter('walker.pedestrian.*')
         pedestrian_bp = walker_bps[0]  
         
@@ -77,7 +77,7 @@ def main():
         pedestrian.apply_control(walker_control)
         print("🚶‍♂️ Pedestrian is walking")
 
-        # 3. Spawn Oncoming Car (BY FORCE)
+        # 3. Spawn Oncoming Car
         forward_vector = car_spawn.get_forward_vector()
         right_vector = car_spawn.get_right_vector()
         
@@ -85,7 +85,7 @@ def main():
         audi_x = car_spawn.location.x + (forward_vector.x * 45.0)
         audi_y = car_spawn.location.y + (forward_vector.y * 45.0)
         
-        # Force it 3.5 meters to the LEFT (Negative Right Vector)
+        # Force it 3.5 meters to the LEFT
         shift_left = -3.5 
         audi_x += (right_vector.x * shift_left)
         audi_y += (right_vector.y * shift_left)
@@ -129,7 +129,7 @@ def main():
             if distance < 12.0:
                 print("\n\n🚨 CRITICAL DISTANCE REACHED (< 12m) 🚨")
                 
-                # INSTANTLY KILL THE AUTOPILOT
+                
                 ego_vehicle.set_autopilot(False)
                 
                 print("📝 Reading CARLA sensors to build live facts...")
@@ -208,7 +208,7 @@ def main():
                     print("✅ Pass complete. Resuming AI control.")
                     ego_vehicle.set_autopilot(True)
                     
-                    # NOW we break the loop, because the emergency scenario is over!
+                    
                     break 
             
             time.sleep(0.05)

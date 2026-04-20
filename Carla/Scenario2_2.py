@@ -68,14 +68,14 @@ def main():
         intersection_center_x = car_spawn.location.x + (forward_vector.x * 35.0)
         intersection_center_y = car_spawn.location.y + (forward_vector.y * 35.0)
         
-        # PUSH THE AUDI LEFT OF THE INTERSECTION
-        cross_x = intersection_center_x + (right_vector.x * -35.0)
-        cross_y = intersection_center_y + (right_vector.y * -35.0)
-        cross_z = car_spawn.location.z + 1.0
+        # # PUSH THE AUDI LEFT OF THE INTERSECTION
+        # cross_x = intersection_center_x + (right_vector.x * -35.0)
+        # cross_y = intersection_center_y + (right_vector.y * -35.0)
+        # cross_z = car_spawn.location.z + 1.0
         
-        cross_loc = carla.Location(x=cross_x, y=cross_y, z=cross_z)
-        cross_rot = car_spawn.rotation
-        cross_rot.yaw += 90.0 
+        # cross_loc = carla.Location(x=cross_x, y=cross_y, z=cross_z)
+        # cross_rot = car_spawn.rotation
+        # cross_rot.yaw += 90.0 
         cross_spawn = spawn_points[29]
 
         audi_bp = blueprint_library.find('vehicle.audi.a2')
@@ -144,7 +144,7 @@ def main():
                 
                 # Check Audi and manipulate its traffic light
                 if cross_car is not None:  
-                    # MAGIC GREEN LIGHT FIX
+                   
                     audi_light = cross_car.get_traffic_light()
                     if audi_light is not None and audi_light.get_state() != carla.TrafficLightState.Green:
                         audi_light.set_state(carla.TrafficLightState.Green)
@@ -159,7 +159,7 @@ def main():
 
                 facts_header = "# Facts\n" + "\n".join(live_facts) + "\n\n"
 
-                # ENGINE FIX: Explicit [O]enter_intersection added back to r_safe so the engine sees the conflict
+                
                 rules_block = (
                     "# Strict rules\n"
                     "r1: ambulance_vehicle -> emergency_vehicle\n\n"
@@ -185,7 +185,7 @@ def main():
                 print(f"Raw Output: {clingo_string}")
                 print("----------------------\n")
 
-                # MATCH THE EXACT OUTPUT SYNTAX OF YOUR ENGINE
+        
                 if "non(enter_intersection)" in clingo_string:
                     print("⚖️ Resolution: TRAPPED (Collision Avoidance/Law > Emergency). Holding brakes.")
                     ego_vehicle.apply_control(carla.VehicleControl(brake=1.0, throttle=0.0, steer=0.0))

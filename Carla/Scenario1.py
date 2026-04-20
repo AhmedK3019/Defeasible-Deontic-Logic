@@ -27,7 +27,7 @@ def main():
     logic_engine = DDLEngine(root_folder)
 
     try:
-        # 1. Spawn EXACTLY one Mercedes (Ego Vehicle)
+        # 1. Spawn one Mercedes (Ego Vehicle)
         merc_bp = blueprint_library.find('vehicle.mercedes.coupe_2020')
         merc_bp.set_attribute('color', '200,100,100') # Red
         spawn_points = world.get_map().get_spawn_points()
@@ -48,7 +48,7 @@ def main():
         cam_location = carla.Location(x=cam_x, y=cam_y, z=cam_z)
         spectator.set_transform(carla.Transform(cam_location, car_transform.rotation))
 
-        # 2. Spawn EXACTLY one Pedestrian (20 meters ahead)
+        # 2. Spawn one Pedestrian (20 meters ahead)
         pedestrian_bp = blueprint_library.find('static.prop.barrel')
         
         forward_vector = car_spawn.get_forward_vector()
