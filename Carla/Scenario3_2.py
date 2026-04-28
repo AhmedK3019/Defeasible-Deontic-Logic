@@ -56,7 +56,7 @@ def main():
         ped_y = car_spawn.location.y + (forward_vector.y * 15.0)
         
         # Shift pedestrian to the right edge of the lane
-        shift_amount = 1.2 
+        shift_amount = 2
         ped_x += (right_vector.x * shift_amount)
         ped_y += (right_vector.y * shift_amount)
         
@@ -133,7 +133,18 @@ def main():
                 ego_vehicle.set_autopilot(False)
                 
                 print("📝 Reading CARLA sensors to build live facts...")
-                live_facts = ["driving", "pedestrian"]
+                print("📝 Reading CARLA sensors to build live facts...")
+                live_facts = []
+                
+                # --- DYNAMIC SENSOR 0: Velocity Tracking ---
+                velocity = ego_vehicle.get_velocity()
+                speed = math.hypot(velocity.x, velocity.y)
+                if speed > 0.1: 
+                    live_facts.append("driving")
+
+                # --- DYNAMIC SENSOR 1: Vulnerable Road User ---
+                # Triggered mathematically by the distance < 12.0 loop above
+                live_facts.append("pedestrian")
                 
                 # --- DYNAMIC SENSOR 2: Check for oncoming traffic (ONLY IN FRONT) ---
                 if oncoming_car is not None:
@@ -196,13 +207,17 @@ def main():
                     ego_vehicle.set_light_state(carla.VehicleLightState.LeftBlinker) 
                     
                     # Force gear 1 for sudden movement
-                    ego_vehicle.apply_control(carla.VehicleControl(throttle=0.6, steer=-0.25, brake=0.0, manual_gear_shift=True, gear=1))
+                    ego_vehicle.apply_control(carla.VehicleControl(throttle=0.6, steer=-0.15, brake=0.0, manual_gear_shift=True, gear=1))
                     time.sleep(1.5) 
                     
                     # RECOVERY MANEUVER 
                     ego_vehicle.set_light_state(carla.VehicleLightState.RightBlinker)
-                    ego_vehicle.apply_control(carla.VehicleControl(throttle=0.6, steer=0.25, brake=0.0))
+                    ego_vehicle.apply_control(carla.VehicleControl(throttle=0.6, steer=0.20, brake=0.0))
                     time.sleep(1.5)
+
+                    ego_vehicle.apply_control(carla.VehicleControl(throttle=0.5, steer=-0.10, brake=0.0))
+                    time.sleep(1.0)
+
                     ego_vehicle.set_light_state(carla.VehicleLightState.NONE)
                     
                     print("✅ Pass complete. Resuming AI control.")

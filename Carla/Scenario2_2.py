@@ -82,8 +82,8 @@ def main():
         audi_bp.set_attribute('color', '0,0,200')
         
         # To test the "Safe" scenario where the Mercedes moves, change this to: cross_car = None
-        # cross_car = world.spawn_actor(audi_bp, cross_spawn)
-        cross_car = None
+        cross_car = world.spawn_actor(audi_bp, cross_spawn)
+        # cross_car = None
         actor_list.append(cross_car)
         print("✅ Cross Traffic (Audi) Spawned left of the intersection")
 
@@ -130,9 +130,25 @@ def main():
                 if ambulance is not None:
                     ambulance.set_autopilot(False)
                     ambulance.apply_control(carla.VehicleControl(brake=1.0, throttle=0.0, steer=0.0))
-
                 print("📝 Reading CARLA sensors to build live facts...")
-                live_facts = ["driving", "car"] 
+                live_facts = []
+                
+                # --- DYNAMIC SENSOR 0: Velocity Tracking ---
+                velocity = ego_vehicle.get_velocity()
+                speed = math.hypot(velocity.x, velocity.y)
+                if speed > 0.1: 
+                    live_facts.append("driving")
+                
+                # --- DYNAMIC SENSOR 1: Red Light Camera ---
+                if ego_vehicle.is_at_traffic_light():
+                    live_facts.append("red_light")
+                    print("⚠️ RED LIGHT DETECTED")
+                else:
+                    print("ℹ️ No red light detected by CARLA sensors.") 
+                
+                # --- DYNAMIC SENSOR 2: Emergency Siren Proximity ---
+                # Triggered mathematically by the amb_dist < 12.0 loop above
+                live_facts.append("ambulance_vehicle") 
                 
                 if ego_vehicle.is_at_traffic_light():
                     live_facts.append("red_light")

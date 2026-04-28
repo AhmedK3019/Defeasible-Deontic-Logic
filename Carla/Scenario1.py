@@ -32,7 +32,7 @@ def main():
         merc_bp.set_attribute('color', '200,100,100') # Red
         spawn_points = world.get_map().get_spawn_points()
         
-        car_spawn = spawn_points[55] # Fallback
+        car_spawn = spawn_points[55]
         ego_vehicle = world.spawn_actor(merc_bp, car_spawn)
         actor_list.append(ego_vehicle)
         print("✅ Mercedes Spawned")
@@ -48,20 +48,20 @@ def main():
         cam_location = carla.Location(x=cam_x, y=cam_y, z=cam_z)
         spectator.set_transform(carla.Transform(cam_location, car_transform.rotation))
 
-        # 2. Spawn one Pedestrian (20 meters ahead)
-        pedestrian_bp = blueprint_library.find('static.prop.barrel')
+        # 2. Spawn one Object (20 meters ahead)
+        object_bp = blueprint_library.find('static.prop.barrel')
         
         forward_vector = car_spawn.get_forward_vector()
-        ped_x = car_spawn.location.x + (forward_vector.x * 20.0)
-        ped_y = car_spawn.location.y + (forward_vector.y * 20.0)
-        ped_z = car_spawn.location.z
+        obj_x = car_spawn.location.x + (forward_vector.x * 20.0)
+        obj_y = car_spawn.location.y + (forward_vector.y * 20.0)
+        obj_z = car_spawn.location.z
         
-        pedestrian_loc = carla.Location(x=ped_x, y=ped_y, z=ped_z)
-        pedestrian_spawn = spawn_points[13]
+        object_loc = carla.Location(x=obj_x, y=obj_y, z=obj_z)
+        object_spawn = spawn_points[13]
 
-        pedestrian = world.spawn_actor(pedestrian_bp, pedestrian_spawn)
-        actor_list.append(pedestrian)
-        print("✅ Pedestrian Spawned")
+        object = world.spawn_actor(object_bp, object_spawn)
+        actor_list.append(object)
+        print("✅ Object Spawned")
 
         # 3. Spawn EXACTLY one Oncoming Car (40 meters ahead, perfectly in the left lane)
         audi_bp = blueprint_library.find('vehicle.audi.a2')
@@ -85,8 +85,8 @@ def main():
         # 4. The Perception Loop
         while True:
             car_loc = ego_vehicle.get_location()
-            ped_loc = pedestrian.get_location()
-            distance = math.hypot(ped_loc.x - car_loc.x, ped_loc.y - car_loc.y)
+            obj_loc = object.get_location()
+            distance = math.hypot(obj_loc.x - car_loc.x, obj_loc.y - car_loc.y)
             
             print(f"\rDistance to hazard: {distance:.2f} meters   ", end="")
 
@@ -99,7 +99,18 @@ def main():
                 
                 # DYNAMIC Fact Generation
                 print("📝 Reading CARLA sensors to build live facts...")
-                live_facts = ["driving", "obstacle", "short_distance"]
+                live_facts = []
+                
+                # --- DYNAMIC SENSOR 0: Velocity Tracking ---
+                velocity = ego_vehicle.get_velocity()
+                speed = math.hypot(velocity.x, velocity.y)
+                if speed > 0.1: 
+                    live_facts.append("driving")
+                
+                # --- DYNAMIC SENSOR 1: Forward Obstacle ---
+                # Triggered mathematically by the distance < 12.0 loop above
+                live_facts.append("obstacle")
+                live_facts.append("short_distance")
                 
                 # Sensor: Oncoming Traffic Radar
                 if oncoming_car is not None:

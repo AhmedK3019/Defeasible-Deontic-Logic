@@ -75,8 +75,8 @@ def main():
         audi_bp = blueprint_library.find('vehicle.audi.a2')
         audi_bp.set_attribute('color', '0,0,200') # Blue
         
-        # rear_car = world.spawn_actor(audi_bp, rear_spawn)
-        rear_car = None  # Comment this line to spawn the rear traffic
+        rear_car = world.spawn_actor(audi_bp, rear_spawn)
+        # rear_car = None  # Comment this line to spawn the rear traffic
         actor_list.append(rear_car)
         print("✅ Rear Traffic Spawned exactly 20 meters behind Ego Vehicle")
 
@@ -123,11 +123,40 @@ def main():
                     rear_car.apply_control(carla.VehicleControl(brake=1.0, throttle=0.0, steer=0.0))
                 
                 print("📝 Reading CARLA sensors to build live facts...")
-                live_facts = ["driving", "one_way_street"] 
+                live_facts = []
                 
-                # DYNAMIC SENSOR 1: Roadblock
-                live_facts.append("hazard")
+                # --- DYNAMIC SENSOR 0: Velocity Tracking ---
+                velocity = ego_vehicle.get_velocity()
+                speed = math.hypot(velocity.x, velocity.y)
+                if speed > 0.1: # Threshold to account for micro-physics jitter
+                    live_facts.append("driving")
+
+                # --- FORCED CONTEXT: One-Way Street ---
+                # Forced to True for Scenario 4 to guarantee a Legal vs. Safe conflict
+                live_facts.append("one_way_street")
                 
+               # --- DYNAMIC SENSOR 1: Forward Hazard Detection ---
+                # Get all vehicles and obstacles in the world
+                vehicles = list(world.get_actors().filter('vehicle.*'))
+                props = list(world.get_actors().filter('static.prop.*'))
+                possible_hazards = vehicles + props
+                hazard_detected = False
+
+                for actor in possible_hazards:
+                    if actor.id == ego_vehicle.id:
+                        continue
+                    
+                    # Calculate distance and relative position
+                    loc = actor.get_location()
+                    dist = math.hypot(loc.x - car_loc.x, loc.y - car_loc.y)
+                    
+                    # If anything is closer than 12m, it's a hazard
+                    if dist < 12.0:
+                        hazard_detected = True
+                        break
+
+                if hazard_detected:
+                    live_facts.append("hazard")
                 # DYNAMIC SENSOR 2: Rear Radar
                 if rear_car is not None:  
                     rear_loc = rear_car.get_location()
