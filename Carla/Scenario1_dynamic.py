@@ -69,17 +69,17 @@ def main():
         audi_rot = car_spawn.rotation
         audi_rot.yaw += 180.0 
         
-        audi1 = world.spawn_actor(audi_bp, carla.Transform(carla.Location(x=audi1_x, y=audi1_y, z=car_spawn.location.z + 2.0), audi_rot))
-        actor_list.append(audi1)
-        oncoming_cars.append(audi1)
+        # audi1 = world.spawn_actor(audi_bp, carla.Transform(carla.Location(x=audi1_x, y=audi1_y, z=car_spawn.location.z + 2.0), audi_rot))
+        # actor_list.append(audi1)
+        # oncoming_cars.append(audi1)
 
         # Car 2: The Surprise (75 meters ahead)
         audi2_x = car_spawn.location.x + (forward_vector.x * 85.0) + (right_vector.x * -3.5)
         audi2_y = car_spawn.location.y + (forward_vector.y * 85.0) + (right_vector.y * -3.5)
         
-        audi2 = world.spawn_actor(audi_bp, carla.Transform(carla.Location(x=audi2_x, y=audi2_y, z=car_spawn.location.z + 2.0), audi_rot))
-        actor_list.append(audi2)
-        oncoming_cars.append(audi2)
+        # audi2 = world.spawn_actor(audi_bp, carla.Transform(carla.Location(x=audi2_x, y=audi2_y, z=car_spawn.location.z + 2.0), audi_rot))
+        # actor_list.append(audi2)
+        # oncoming_cars.append(audi2)
         
         print("✅ Convoy of 2 Oncoming Cars Spawned")
         for car in oncoming_cars:
@@ -90,41 +90,53 @@ def main():
         print("🚗 Vehicle in motion... Engaging Dynamic Logic Engine")
 
         current_steer = 0.0
+        throttle_integral = 0.0
+        target_speed_mps = 8.0
+        has_seen_obstacle = False
+
         # 4. THE DYNAMIC PERCEPTION & CONTROL LOOP (20 Hz)
         while True:
             car_loc = ego_vehicle.get_location()
             obj_loc = object.get_location()
             
-            # Spatial Math
-            distance_to_hazard = math.hypot(obj_loc.x - car_loc.x, obj_loc.y - car_loc.y)
+            # --- DIRECTIONAL SPATIAL MATH ---
+            to_obj_x = obj_loc.x - car_loc.x
+            to_obj_y = obj_loc.y - car_loc.y
+            distance_to_hazard = math.hypot(to_obj_x, to_obj_y)
+            
+            car_fwd = ego_vehicle.get_transform().get_forward_vector()
+            obj_dot = (car_fwd.x * to_obj_x) + (car_fwd.y * to_obj_y)
+
             waypoint = world.get_map().get_waypoint(car_loc)
             lane_center_dist = math.hypot(car_loc.x - waypoint.transform.location.x, 
                                           car_loc.y - waypoint.transform.location.y)
 
-            
-
             sys.stdout.write(f"\rDistance to hazard: {distance_to_hazard:.2f}m | Off-center: {lane_center_dist:.2f}m   ")
             sys.stdout.flush()
 
-            # --- FACT GENERATION ---
-            live_facts = []
-            speed = math.hypot(ego_vehicle.get_velocity().x, ego_vehicle.get_velocity().y)
+            # --- DYNAMIC KINEMATIC THRESHOLD & MEMORY ---
+            velocity = ego_vehicle.get_velocity()
+            speed = math.hypot(velocity.x, velocity.y)
+            dynamic_obstacle_threshold = 3.0 + (speed * 1.5) 
             
-            live_facts.append("driving")
+            if distance_to_hazard < dynamic_obstacle_threshold and obj_dot > 0:
+                has_seen_obstacle = True
+            elif obj_dot < -2.0:
+                has_seen_obstacle = False # Barrel is behind us, forget it
 
+            # --- FACT GENERATION ---
+            live_facts = ["driving"]
+            
             if waypoint.left_lane_marking.type == carla.LaneMarkingType.Solid:
                 live_facts.append("solid_line")
             else:
                 live_facts.append("dashed_line") 
 
-            # Bounding Box Logic: Trigger between 12m away and 2m behind
-            if 12.0 > distance_to_hazard > -2.0:
+            if has_seen_obstacle:
                 live_facts.append("obstacle")
                 live_facts.append("short_distance")
 
-         
             # --- DYNAMIC SENSOR: Directional Oncoming Traffic (Array Scan) ---
-            car_fwd = ego_vehicle.get_transform().get_forward_vector()
             threat_detected = False
             
             for o_car in oncoming_cars:
@@ -161,9 +173,8 @@ def main():
             current_lane_id = waypoint.lane_id
             print(f"\nInit Lane: {initial_lane_id} | Curr Lane: {current_lane_id} | Facts: {live_facts} | Clingo: {clingo_output}")
 
-       # --- DYNAMIC ACTUATION (PURE GEOMETRY PD CONTROLLER) ---
+            # --- DYNAMIC ACTUATION (PURE GEOMETRY PD CONTROLLER) ---
             current_wp = world.get_map().get_waypoint(car_loc)
-            car_fwd = ego_vehicle.get_transform().get_forward_vector()
             
             # 1. Are we physically in a lane facing backwards?
             wp_fwd = current_wp.transform.get_forward_vector()
@@ -220,24 +231,32 @@ def main():
                 
             yaw_diff = (car_yaw - road_yaw + 180) % 360 - 180
 
-            # 4. PD Controller Math
+            # 4. PD Controller Math for Steering
             steer_target = (-0.20 * cte) + (-0.02 * yaw_diff) 
             steer_target = max(min(steer_target, 0.6), -0.6) 
-
             current_steer = current_steer + 0.3 * (steer_target - current_steer)
+
+            # --- 5. LONGITUDINAL PID CONTROLLER (Auto-Speed) ---
+            speed_error = target_speed_mps - speed
+            throttle_integral += speed_error * 0.05
+            throttle_integral = max(min(throttle_integral, 1.0), 0.0) # Anti-windup
+            
+            calc_throttle = (0.15 * speed_error) + (0.05 * throttle_integral)
+            calc_throttle = max(min(calc_throttle, 0.8), 0.0)
 
             # Update dashboard so you can watch the math live
             sys.stdout.write(f"\rTgtBack: {target_is_backward} | CTE: {cte: .2f} | YawDiff: {yaw_diff: .0f}° | Steer: {steer_target: .2f}   ")
             sys.stdout.flush()
 
-            # 5. Resolve Control
+            # 6. Resolve Control
             if "non(cross_line)" in clingo_output and "obstacle" in live_facts:
                 ego_vehicle.set_light_state(carla.VehicleLightState.Brake)
                 ego_vehicle.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0))
             elif clingo_output.strip() == "":
                 ego_vehicle.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0))
             else:
-                ego_vehicle.apply_control(carla.VehicleControl(throttle=0.5, steer=current_steer, brake=0.0))
+                ego_vehicle.apply_control(carla.VehicleControl(throttle=calc_throttle, steer=current_steer, brake=0.0))
+            
             # Maintain 20Hz loop
             time.sleep(0.05) 
 
